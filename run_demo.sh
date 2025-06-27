@@ -343,7 +343,7 @@ show_help() {
 # Main execution
 main() {
     case "${1:-start}" in
-        "start"|"")
+        "start"|"--start"|"")
             print_header
             check_python
             cleanup
@@ -354,10 +354,10 @@ main() {
             show_status
             monitor_services
             ;;
-        "stop")
+        "stop"|"--stop")
             stop_services
             ;;
-        "restart")
+        "restart"|"--restart")
             print_header
             cleanup
             sleep 2
@@ -365,13 +365,13 @@ main() {
             print_success "Services restarted"
             show_status
             ;;
-        "status")
+        "status"|"--status")
             show_status
             ;;
-        "logs")
+        "logs"|"--logs")
             show_logs
             ;;
-        "cleanup")
+        "cleanup"|"--cleanup")
             cleanup
             print_step "Removing generated files..."
             rm -rf apps backend frontend logs
