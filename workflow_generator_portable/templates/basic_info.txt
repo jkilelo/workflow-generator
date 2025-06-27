@@ -1,0 +1,8 @@
+This templates directory will be populated automatically when you run:
+python auto_setup.py
+
+The auto_setup.py script creates all necessary Jinja2 templates for:
+- FastAPI plugin generation
+- React component generation  
+- Configuration file generation
+- Schema file generation
