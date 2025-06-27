@@ -19,17 +19,23 @@ import json
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, BaseLoader
-from workflow_schema import WorkflowSchema, StepDefinition, ParameterDefinition, ParameterType, StepType
+from workflow_schema import (
+    WorkflowSchema,
+    StepDefinition,
+    ParameterDefinition,
+    ParameterType,
+    StepType,
+)
 
 
 class WorkflowGenerator:
     """Generates FastAPI backend and React frontend code from workflow schemas"""
-    
+
     def __init__(self, output_dir: str = "./generated_workflows"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.setup_templates()
-    
+
     def setup_templates(self):
         """Setup Jinja2 templates for code generation"""
         # Store templates as separate strings to avoid Python string formatting conflicts
@@ -57,9 +63,9 @@ class {{ param.name|title }}Model(BaseModel):
 
 {% for step in steps %}
 class {{ step.id|title }}Request(BaseModel):
-{% if step.parameters and step.parameters|length > 0 -%}
+{%- if step.parameters and step.parameters|length > 0 %}
 {%- for param in step.parameters %}
-    {%- if param.type.value == 'string' or param.type.value == 'url' %}
+    {%- if param.type.value == 'string' or param.type.value == 'url' or param.type.value == 'textarea' %}
     {{ param.name }}: str{% if param.required %} = Field(..., description="{{ param.description or '' }}"){% else %} = Field("{{ param.default or '' }}", description="{{ param.description or '' }}"){% endif %}
     {%- elif param.type.value == 'number' %}
     {{ param.name }}: float{% if param.required %} = Field(..., description="{{ param.description or '' }}"){% else %} = Field({{ param.default or 0 }}, description="{{ param.description or '' }}"){% endif %}
@@ -244,7 +250,7 @@ class {{ class_name }}Plugin(BasePlugin):
 # Plugin instance for registration
 plugin_instance = {{ class_name }}Plugin()
 '''
-        
+
         self.react_template = """
 import React, { useState, useEffect } from 'react';
 import { useWorkflowStore } from '../store/workflowStore';
@@ -536,129 +542,144 @@ const {{ component_name }}: React.FC<{{ component_name }}Props> = ({ appId }) =>
 
 export default {{ component_name }};
 """
-    
+
     def generate_fastapi_plugin(self, workflow: WorkflowSchema) -> str:
         """Generate FastAPI plugin code from workflow schema"""
         env = Environment(loader=BaseLoader())
         template = env.from_string(self.fastapi_template_content)
-        
+
         # Extract custom handlers
         custom_handlers = set()
         for step in workflow.steps:
             if step.custom_handler:
                 custom_handlers.add(step.custom_handler)
-        
+
         return template.render(
             workflow_id=workflow.metadata.id,
             workflow_name=workflow.metadata.name,
-            class_name=''.join(word.capitalize() for word in workflow.metadata.id.split('_')),
-            description=workflow.metadata.description or '',
+            class_name="".join(
+                word.capitalize() for word in workflow.metadata.id.split("_")
+            ),
+            description=workflow.metadata.description or "",
             version=workflow.metadata.version,
             author=workflow.metadata.author,
             category=workflow.metadata.category,
             steps=workflow.steps,
             global_parameters=workflow.global_parameters or [],
-            custom_handlers=list(custom_handlers)
+            custom_handlers=list(custom_handlers),
         )
-    
+
     def generate_react_component(self, workflow: WorkflowSchema) -> str:
         """Generate React component code from workflow schema"""
         env = Environment(loader=BaseLoader())
         template = env.from_string(self.react_template)
-        
-        component_name = ''.join(word.capitalize() for word in workflow.metadata.id.split('_')) + 'Workflow'
-        
+
+        component_name = (
+            "".join(word.capitalize() for word in workflow.metadata.id.split("_"))
+            + "Workflow"
+        )
+
         return template.render(
             workflow_id=workflow.metadata.id,
             workflow_name=workflow.metadata.name,
             component_name=component_name,
-            steps=workflow.steps
+            steps=workflow.steps,
         )
-    
+
     def generate_app_config(self, workflow: WorkflowSchema) -> Dict[str, Any]:
         """Generate app configuration for main_api_server.py integration"""
         return {
             "id": workflow.metadata.id,
             "name": workflow.metadata.name,
-            "description": workflow.metadata.description or '',
-            "category": workflow.metadata.category or 'general',
+            "description": workflow.metadata.description or "",
+            "category": workflow.metadata.category or "general",
             "plugin_class": f"{workflow.metadata.id}_plugin.plugin_instance",
             "steps": [
                 {
                     "id": step.id,
                     "name": step.name,
-                    "description": step.description or ''
+                    "description": step.description or "",
                 }
                 for step in workflow.steps
-            ]
+            ],
         }
-    
+
     def generate_workflow_files(self, workflow: WorkflowSchema) -> Dict[str, str]:
         """Generate all files for a workflow"""
         files = {}
-        
+
         # Generate FastAPI plugin
         plugin_code = self.generate_fastapi_plugin(workflow)
         files[f"{workflow.metadata.id}_plugin.py"] = plugin_code
-        
+
         # Generate React component
         component_code = self.generate_react_component(workflow)
         files[f"{workflow.metadata.id}_workflow.tsx"] = component_code
-        
+
         # Generate configuration
         config = self.generate_app_config(workflow)
         files[f"{workflow.metadata.id}_config.json"] = json.dumps(config, indent=2)
-        
+
         # Generate workflow schema file
-        files[f"{workflow.metadata.id}_schema.json"] = json.dumps(workflow.model_dump(), indent=2)
-        
+        files[f"{workflow.metadata.id}_schema.json"] = json.dumps(
+            workflow.model_dump(), indent=2
+        )
+
         return files
-    
-    def save_workflow_files(self, workflow: WorkflowSchema, output_backend_dir: str = None, output_frontend_dir: str = None):
+
+    def save_workflow_files(
+        self,
+        workflow: WorkflowSchema,
+        output_backend_dir: str = None,
+        output_frontend_dir: str = None,
+    ):
         """Save generated workflow files to filesystem"""
         files = self.generate_workflow_files(workflow)
-        
+
         # Save backend plugin
         if output_backend_dir:
             backend_path = Path(output_backend_dir)
             backend_path.mkdir(exist_ok=True)
-            with open(backend_path / f"{workflow.metadata.id}_plugin.py", 'w') as f:
+            with open(backend_path / f"{workflow.metadata.id}_plugin.py", "w") as f:
                 f.write(files[f"{workflow.metadata.id}_plugin.py"])
-        
+
         # Save frontend component
         if output_frontend_dir:
             frontend_path = Path(output_frontend_dir)
             frontend_path.mkdir(exist_ok=True)
-            with open(frontend_path / f"{workflow.metadata.id}_workflow.tsx", 'w') as f:
+            with open(frontend_path / f"{workflow.metadata.id}_workflow.tsx", "w") as f:
                 f.write(files[f"{workflow.metadata.id}_workflow.tsx"])
-        
+
         # Save to output directory
         workflow_dir = self.output_dir / workflow.metadata.id
         workflow_dir.mkdir(exist_ok=True)
-        
+
         for filename, content in files.items():
-            with open(workflow_dir / filename, 'w') as f:
+            with open(workflow_dir / filename, "w") as f:
                 f.write(content)
-        
+
         return workflow_dir
 
 
 # Example usage and testing
 if __name__ == "__main__":
-    from workflow_schema import create_ai_web_testing_workflow, create_dq_testing_workflow
-    
+    from workflow_schema import (
+        create_ai_web_testing_workflow,
+        create_dq_testing_workflow,
+    )
+
     generator = WorkflowGenerator()
-    
+
     # Generate AI Web Testing workflow
     ai_workflow = create_ai_web_testing_workflow()
     ai_files = generator.generate_workflow_files(ai_workflow)
     generator.save_workflow_files(ai_workflow)
-    
+
     # Generate DQ Testing workflow
     dq_workflow = create_dq_testing_workflow()
     dq_files = generator.generate_workflow_files(dq_workflow)
     generator.save_workflow_files(dq_workflow)
-    
+
     print("Generated workflows:")
     print(f"- AI Web Testing: {len(ai_files)} files")
     print(f"- DQ Testing: {len(dq_files)} files")

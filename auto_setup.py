@@ -26,45 +26,45 @@ except ImportError as e:
 
 class AutoSetup:
     """Autonomous setup system for Workflow Generator"""
-    
+
     def __init__(self):
         self.setup_start_time = time.time()
         self.examples_generated = []
         self.files_created = []
-        
+
     def print_banner(self):
         """Print setup banner"""
         print("🚀 Workflow Generator - Auto Setup")
         print("==================================")
         print("Generating example workflows and setting up your environment...")
         print()
-    
+
     def create_directory_structure(self):
         """Create necessary directory structure"""
         print("📁 Creating directory structure...")
-        
+
         directories = [
-            'backend',
-            'frontend/src/components/workflows',
-            'frontend/src/components/ui',
-            'apps',
-            'generated_workflows',
-            'templates',
-            'examples'
+            "backend",
+            "frontend/src/components/workflows",
+            "frontend/src/components/ui",
+            "apps",
+            "generated_workflows",
+            "templates",
+            "examples",
         ]
-        
+
         for directory in directories:
             Path(directory).mkdir(parents=True, exist_ok=True)
             print(f"   ✅ {directory}")
-        
+
         print()
-    
+
     def create_ui_components(self):
         """Create basic UI components for React"""
         print("⚛️ Creating base UI components...")
-        
+
         # Create Button component
-        button_component = '''import React from 'react';
+        button_component = """import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline';
@@ -97,10 +97,10 @@ export const Button: React.FC<ButtonProps> = ({
       {children}
     </button>
   );
-};'''
-        
+};"""
+
         # Create Input component
-        input_component = '''import React from 'react';
+        input_component = """import React from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -131,13 +131,13 @@ export const Input: React.FC<InputProps> = ({
       )}
     </div>
   );
-};'''
-        
+};"""
+
         # Create other UI components
         ui_components = {
-            'Button.tsx': button_component,
-            'Input.tsx': input_component,
-            'Select.tsx': '''import React from 'react';
+            "Button.tsx": button_component,
+            "Input.tsx": input_component,
+            "Select.tsx": """import React from 'react';
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -171,8 +171,8 @@ export const Select: React.FC<SelectProps> = ({
       )}
     </div>
   );
-};''',
-            'TextArea.tsx': '''import React from 'react';
+};""",
+            "TextArea.tsx": """import React from 'react';
 
 interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
@@ -203,8 +203,8 @@ export const TextArea: React.FC<TextAreaProps> = ({
       )}
     </div>
   );
-};''',
-            'FileUpload.tsx': '''import React, { useRef } from 'react';
+};""",
+            "FileUpload.tsx": """import React, { useRef } from 'react';
 
 interface FileUploadProps {
   onFileSelect: (file: File) -> void;
@@ -247,8 +247,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       </button>
     </div>
   );
-};''',
-            'Card.tsx': '''import React from 'react';
+};""",
+            "Card.tsx": """import React from 'react';
 
 interface CardProps {
   children: React.ReactNode;
@@ -285,94 +285,94 @@ export const CardContent: React.FC<CardProps> = ({ children, className = '' }) =
       {children}
     </div>
   );
-};'''
+};""",
         }
-        
-        ui_dir = Path('frontend/src/components/ui')
+
+        ui_dir = Path("frontend/src/components/ui")
         for filename, content in ui_components.items():
             file_path = ui_dir / filename
-            with open(file_path, 'w') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
             self.files_created.append(str(file_path))
             print(f"   ✅ {filename}")
-        
+
         print()
-    
+
     def create_example_workflows(self):
         """Create example workflows automatically"""
         print("🔧 Generating example workflows...")
-        
+
         manager = WorkflowManager()
-        
+
         # Example 1: Data Processing Pipeline
         data_pipeline_tasks = {
             1: "data input and validation",
             2: "ai-powered data analysis",
             3: "report generation",
-            4: "output formatting"
+            4: "output formatting",
         }
-        
+
         workflow_id_1 = manager.create_workflow_from_tasks(
             tasks=data_pipeline_tasks,
             workflow_name="Data Processing Pipeline",
             description="Complete data processing workflow with AI analysis",
-            category="data_processing"
+            category="data_processing",
         )
-        
+
         # Example 2: Content Generation System
         content_gen_tasks = {
             1: "content input",
             2: "ai content generation",
             3: "quality review",
-            4: "publication"
+            4: "publication",
         }
-        
+
         workflow_id_2 = manager.create_workflow_from_tasks(
             tasks=content_gen_tasks,
             workflow_name="AI Content Generator",
             description="Automated content generation with AI assistance",
-            category="content"
+            category="content",
         )
-        
+
         # Example 3: Testing Framework
         testing_tasks = {
             1: "test configuration",
             2: "automated testing",
             3: "result analysis",
-            4: "report generation"
+            4: "report generation",
         }
-        
+
         workflow_id_3 = manager.create_workflow_from_tasks(
             tasks=testing_tasks,
             workflow_name="Automated Testing Suite",
             description="Comprehensive automated testing framework",
-            category="testing"
+            category="testing",
         )
-        
+
         # Deploy all workflows
         workflows = [workflow_id_1, workflow_id_2, workflow_id_3]
-        
+
         for workflow_id in workflows:
             try:
                 paths = manager.deploy_workflow(workflow_id)
                 self.examples_generated.append(workflow_id)
                 workflow_info = manager.get_workflow_schema(workflow_id)
                 print(f"   ✅ {workflow_info.metadata.name} ({workflow_id})")
-                
+
                 # Track created files
                 for file_path in paths.values():
                     self.files_created.append(str(file_path))
-                    
+
             except Exception as e:
                 print(f"   ❌ Failed to deploy {workflow_id}: {e}")
-        
+
         print()
         return workflows
-    
+
     def create_main_server_template(self):
         """Create a basic FastAPI server template"""
         print("🌐 Creating FastAPI server template...")
-        
+
         server_template = '''#!/usr/bin/env python3
 """
 Auto-generated FastAPI Server for Workflow Generator
@@ -471,21 +471,21 @@ if __name__ == "__main__":
     print("🌐 Starting Workflow Generator API Server...")
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
 '''
-        
-        server_path = Path('main.py')
-        with open(server_path, 'w') as f:
+
+        server_path = Path("main.py")
+        with open(server_path, "w", encoding="utf-8") as f:
             f.write(server_template)
-        
+
         self.files_created.append(str(server_path))
         print(f"   ✅ main.py")
         print()
-    
+
     def create_example_configs(self):
         """Create example configuration files"""
         print("⚙️ Creating example configurations...")
-        
+
         # Create example environment file
-        env_example = '''# Workflow Generator Environment Configuration
+        env_example = """# Workflow Generator Environment Configuration
 # Copy this file to .env and customize as needed
 
 # Directory paths (relative to project root)
@@ -507,24 +507,24 @@ GOOGLE_API_KEY=your_google_key_here
 # Development settings
 DEVELOPMENT=true
 LOG_LEVEL=INFO
-'''
-        
-        with open('.env.example', 'w') as f:
+"""
+
+        with open(".env.example", "w", encoding="utf-8") as f:
             f.write(env_example)
-        
-        self.files_created.append('.env.example')
+
+        self.files_created.append(".env.example")
         print(f"   ✅ .env.example")
         print()
-        
+
     def generate_summary_report(self):
         """Generate setup summary report"""
         setup_time = time.time() - self.setup_start_time
-        
+
         print("📊 Setup Summary")
         print("===============")
         print(f"⏱️ Setup completed in {setup_time:.2f} seconds")
         print(f"🔧 Generated {len(self.examples_generated)} example workflows:")
-        
+
         manager = WorkflowManager()
         for workflow_id in self.examples_generated:
             try:
@@ -532,14 +532,14 @@ LOG_LEVEL=INFO
                 print(f"   • {schema.metadata.name} ({len(schema.steps)} steps)")
             except:
                 print(f"   • {workflow_id}")
-        
+
         print(f"📁 Created {len(self.files_created)} files:")
         for file_path in self.files_created[:10]:  # Show first 10 files
             print(f"   • {file_path}")
-        
+
         if len(self.files_created) > 10:
             print(f"   ... and {len(self.files_created) - 10} more files")
-        
+
         print()
         print("🎉 Workflow Generator is ready to use!")
         print()
@@ -549,7 +549,7 @@ LOG_LEVEL=INFO
         print("3. Create new workflows: python workflow_manager.py --help")
         print("4. Run the demo: python demo_workflow_system.py")
         print()
-    
+
     def run_setup(self):
         """Run the complete auto setup process"""
         try:
@@ -560,12 +560,13 @@ LOG_LEVEL=INFO
             self.create_main_server_template()
             self.create_example_configs()
             self.generate_summary_report()
-            
+
             return True
-            
+
         except Exception as e:
             print(f"❌ Setup failed: {e}")
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -574,7 +575,7 @@ def main():
     """Main entry point for auto setup"""
     setup = AutoSetup()
     success = setup.run_setup()
-    
+
     if not success:
         sys.exit(1)
 
