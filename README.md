@@ -17,8 +17,30 @@ Generate production-ready FastAPI backend plugins and React TypeScript component
 
 ## 🚀 Quick Start
 
+### **One-Command Demo (Recommended)**
 ```bash
-# Clone and setup in one go
+# Clone the repository
+git clone https://github.com/yourusername/workflow-generator.git
+cd workflow-generator
+
+# Linux/Mac: Run the demo script
+./run_demo.sh
+
+# Windows: Run the demo script
+run_demo.bat
+```
+
+The demo script automatically:
+- ✅ Sets up Python virtual environment
+- ✅ Installs all dependencies  
+- ✅ Runs autonomous setup
+- ✅ Starts FastAPI server
+- ✅ Opens browser to http://localhost:8003
+- ✅ Monitors services and provides logging
+
+### **Manual Setup**
+```bash
+# Clone and setup manually
 git clone https://github.com/yourusername/workflow-generator.git
 cd workflow-generator
 python auto_setup.py
@@ -270,6 +292,28 @@ The system includes three pre-built examples:
    - Automated testing
    - Result analysis
    - Report generation
+
+## 🎮 Demo Script Options
+
+The `run_demo.sh` script includes several useful commands:
+
+```bash
+./run_demo.sh              # Start the complete demo
+./run_demo.sh --stop       # Stop all services  
+./run_demo.sh --restart    # Restart all services
+./run_demo.sh --status     # Show service status
+./run_demo.sh --logs       # View service logs
+./run_demo.sh --cleanup    # Clean up generated files
+./run_demo.sh --help       # Show help message
+```
+
+**Service Management:**
+- ✅ Automatic port conflict detection and resolution
+- ✅ Process monitoring and auto-restart
+- ✅ Comprehensive logging to `logs/` directory
+- ✅ Graceful shutdown on Ctrl+C
+- ✅ Browser auto-opening
+- ✅ Cross-platform support (Linux, macOS, Windows)
 
 ## 🔧 Advanced Features
 
