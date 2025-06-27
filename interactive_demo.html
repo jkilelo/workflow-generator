@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Workflow Executor - Live Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        .workflow-card { transition: all 0.3s ease; }
+        .workflow-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .step-card { transition: all 0.2s ease; }
+        .step-executing { animation: pulse 2s infinite; }
+        .step-completed { background: linear-gradient(45deg, #10b981, #059669); }
+        .step-error { background: linear-gradient(45deg, #ef4444, #dc2626); }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .modal-backdrop { backdrop-filter: blur(8px); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Auto-generated workflow definitions from our system
+        const workflowDefinitions = {
+            'ai_content_generator': {
+                id: 'ai_content_generator',
+                name: 'AI Content Generator',
+                description: 'Automated content generation with AI assistance',
+                category: 'content',
+                steps: [
+                    {
+                        id: 'step_1',
+                        name: 'Content Input',
+                        type: 'form_input',
+                        description: 'Enter content requirements and parameters',
+                        parameters: [
+                            { name: 'topic', type: 'text', label: 'Content Topic', required: true, placeholder: 'e.g., AI in Healthcare' },
+                            { name: 'length', type: 'select', label: 'Content Length', options: ['Short (500 words)', 'Medium (1000 words)', 'Long (2000 words)'], required: true },
+                            { name: 'tone', type: 'select', label: 'Writing Tone', options: ['Professional', 'Casual', 'Academic', 'Creative'], required: true }
+                        ]
+                    },
+                    {
+                        id: 'step_2',
+                        name: 'AI Content Generation',
+                        type: 'llm_processing',
+                        description: 'Generate content using AI based on your inputs',
+                        parameters: [
+                            { name: 'llm_provider', type: 'select', label: 'AI Provider', options: ['OpenAI GPT-4', 'Anthropic Claude', 'Google Gemini'], required: true }
+                        ]
+                    },
+                    {
+                        id: 'step_3',
+                        name: 'Quality Review',
+                        type: 'form_input',
+                        description: 'Review and refine the generated content',
+                        parameters: [
+                            { name: 'review_notes', type: 'textarea', label: 'Review Notes', placeholder: 'Any changes or improvements needed?' }
+                        ]
+                    },
+                    {
+                        id: 'step_4',
+                        name: 'Publication',
+                        type: 'output_generation',
+                        description: 'Finalize and prepare content for publication',
+                        parameters: [
+                            { name: 'format', type: 'select', label: 'Output Format', options: ['Markdown', 'HTML', 'Plain Text', 'PDF'], required: true }
+                        ]
+                    }
+                ]
+            },
+            'data_processing_pipeline': {
+                id: 'data_processing_pipeline',
+                name: 'Data Processing Pipeline',
+                description: 'Complete data processing workflow with AI analysis',
+                category: 'data_processing',
+                steps: [
+                    {
+                        id: 'step_1',
+                        name: 'Data Input and Validation',
+                        type: 'form_input',
+                        description: 'Upload and validate your data files',
+                        parameters: [
+                            { name: 'data_file', type: 'file', label: 'Data File', required: true, accept: '.csv,.json,.xlsx' },
+                            { name: 'validation_rules', type: 'textarea', label: 'Validation Rules', placeholder: 'Define data validation criteria' }
+                        ]
+                    },
+                    {
+                        id: 'step_2',
+                        name: 'AI-Powered Data Analysis',
+                        type: 'llm_processing',
+                        description: 'Analyze data patterns using AI',
+                        parameters: [
+                            { name: 'analysis_type', type: 'select', label: 'Analysis Type', options: ['Statistical Summary', 'Pattern Detection', 'Anomaly Detection', 'Predictive Analysis'], required: true },
+                            { name: 'llm_provider', type: 'select', label: 'AI Provider', options: ['OpenAI GPT-4', 'Anthropic Claude'], required: true }
+                        ]
+                    },
+                    {
+                        id: 'step_3',
+                        name: 'Report Generation',
+                        type: 'output_generation',
+                        description: 'Generate comprehensive analysis report',
+                        parameters: [
+                            { name: 'report_type', type: 'select', label: 'Report Type', options: ['Executive Summary', 'Technical Report', 'Dashboard', 'Charts & Graphs'], required: true }
+                        ]
+                    },
+                    {
+                        id: 'step_4',
+                        name: 'Output Formatting',
+                        type: 'output_generation',
+                        description: 'Format and export the final results',
+                        parameters: [
+                            { name: 'export_format', type: 'select', label: 'Export Format', options: ['PDF Report', 'Excel Spreadsheet', 'JSON Data', 'CSV Export'], required: true }
+                        ]
+                    }
+                ]
+            },
+            'automated_testing_suite': {
+                id: 'automated_testing_suite',
+                name: 'Automated Testing Suite',
+                description: 'Comprehensive automated testing framework',
+                category: 'testing',
+                steps: [
+                    {
+                        id: 'step_1',
+                        name: 'Test Configuration',
+                        type: 'form_input',
+                        description: 'Configure test parameters and environment',
+                        parameters: [
+                            { name: 'test_url', type: 'url', label: 'Target URL', required: true, placeholder: 'https://example.com' },
+                            { name: 'test_type', type: 'select', label: 'Test Type', options: ['Functional', 'Performance', 'Security', 'Accessibility'], required: true },
+                            { name: 'browser', type: 'select', label: 'Browser', options: ['Chrome', 'Firefox', 'Safari', 'Edge'], required: true }
+                        ]
+                    },
+                    {
+                        id: 'step_2',
+                        name: 'Automated Testing',
+                        type: 'code_execution',
+                        description: 'Run automated tests on the target application',
+                        parameters: [
+                            { name: 'parallel_execution', type: 'checkbox', label: 'Run tests in parallel' },
+                            { name: 'screenshot_on_failure', type: 'checkbox', label: 'Take screenshots on failure' }
+                        ]
+                    },
+                    {
+                        id: 'step_3',
+                        name: 'Result Analysis',
+                        type: 'llm_processing',
+                        description: 'Analyze test results using AI',
+                        parameters: [
+                            { name: 'llm_provider', type: 'select', label: 'AI Provider', options: ['OpenAI GPT-4', 'Anthropic Claude'], required: true }
+                        ]
+                    },
+                    {
+                        id: 'step_4',
+                        name: 'Report Generation',
+                        type: 'output_generation',
+                        description: 'Generate comprehensive test report',
+                        parameters: [
+                            { name: 'include_screenshots', type: 'checkbox', label: 'Include screenshots in report' },
+                            { name: 'report_format', type: 'select', label: 'Report Format', options: ['HTML Report', 'PDF Summary', 'JSON Results'], required: true }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        function FormField({ parameter, value, onChange }) {
+            const handleChange = (e) => {
+                const newValue = parameter.type === 'checkbox' ? e.target.checked : e.target.value;
+                onChange(parameter.name, newValue);
+            };
+
+            const inputClasses = "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all";
+
+            switch (parameter.type) {
+                case 'text':
+                case 'url':
+                    return (
+                        <input
+                            type={parameter.type}
+                            value={value || ''}
+                            onChange={handleChange}
+                            placeholder={parameter.placeholder}
+                            required={parameter.required}
+                            className={inputClasses}
+                        />
+                    );
+                case 'textarea':
+                    return (
+                        <textarea
+                            value={value || ''}
+                            onChange={handleChange}
+                            placeholder={parameter.placeholder}
+                            required={parameter.required}
+                            rows={4}
+                            className={inputClasses}
+                        />
+                    );
+                case 'select':
+                    return (
+                        <select
+                            value={value || ''}
+                            onChange={handleChange}
+                            required={parameter.required}
+                            className={inputClasses}
+                        >
+                            <option value="">Select an option...</option>
+                            {parameter.options.map((option, index) => (
+                                <option key={index} value={option}>{option}</option>
+                            ))}
+                        </select>
+                    );
+                case 'file':
+                    return (
+                        <input
+                            type="file"
+                            onChange={handleChange}
+                            accept={parameter.accept}
+                            required={parameter.required}
+                            className={inputClasses}
+                        />
+                    );
+                case 'checkbox':
+                    return (
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={value || false}
+                                onChange={handleChange}
+                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span className="text-gray-700">{parameter.label}</span>
+                        </label>
+                    );
+                default:
+                    return <div className="text-red-500">Unknown field type: {parameter.type}</div>;
+            }
+        }
+
+        function StepExecutor({ step, stepIndex, onComplete, isActive, status, formData, onFormDataChange }) {
+            const [isExecuting, setIsExecuting] = useState(false);
+
+            const executeStep = async () => {
+                setIsExecuting(true);
+                
+                // Real API call to FastAPI backend
+                try {
+                    const response = await fetch('/api/execute-step', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            workflow_id: window.currentWorkflowId || 'default_workflow',
+                            step_id: step.id,
+                            parameters: formData,
+                            session_id: window.currentSessionId
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    // Store session ID for subsequent requests
+                    window.currentSessionId = result.session_id;
+                    
+                    onComplete(stepIndex, result);
+                } catch (error) {
+                    console.error('Step execution failed:', error);
+                    onComplete(stepIndex, { 
+                        success: false, 
+                        error: error.message,
+                        message: `Failed to execute step: ${error.message}`
+                    });
+                } finally {
+                    setIsExecuting(false);
+                }
+            };
+
+            const generateMockResult = (step) => {
+                switch (step.type) {
+                    case 'llm_processing':
+                        return {
+                            ai_response: "Generated content based on your inputs...",
+                            tokens_used: 150,
+                            model_used: formData.llm_provider || "GPT-4"
+                        };
+                    case 'code_execution':
+                        return {
+                            tests_run: 25,
+                            passed: 23,
+                            failed: 2,
+                            execution_time: "45.2s"
+                        };
+                    case 'output_generation':
+                        return {
+                            output_file: "generated_report.pdf",
+                            file_size: "2.4 MB",
+                            download_url: "/api/download/xyz123"
+                        };
+                    default:
+                        return {
+                            message: "Step completed successfully",
+                            data: formData
+                        };
+                }
+            };
+
+            const getStatusIcon = () => {
+                if (isExecuting) return "⏳";
+                switch (status) {
+                    case 'completed': return "✅";
+                    case 'error': return "❌";
+                    case 'pending': return "⏸️";
+                    default: return "⭕";
+                }
+            };
+
+            const getStatusColor = () => {
+                if (isExecuting) return "border-yellow-400 bg-yellow-50";
+                switch (status) {
+                    case 'completed': return "border-green-400 bg-green-50";
+                    case 'error': return "border-red-400 bg-red-50";
+                    case 'pending': return "border-gray-300 bg-gray-50";
+                    default: return "border-blue-400 bg-blue-50";
+                }
+            };
+
+            return (
+                <div className={`step-card p-6 rounded-xl border-2 mb-4 ${getStatusColor()} ${isExecuting ? 'step-executing' : ''}`}>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                            <span className="text-2xl mr-3">{getStatusIcon()}</span>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-800">
+                                    Step {stepIndex + 1}: {step.name}
+                                </h3>
+                                <p className="text-gray-600 text-sm">{step.description}</p>
+                            </div>
+                        </div>
+                        <span className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded-full">
+                            {step.type.replace('_', ' ')}
+                        </span>
+                    </div>
+
+                    {isActive && status !== 'completed' && (
+                        <div className="space-y-4 mb-4">
+                            {step.parameters?.map((param, index) => (
+                                <div key={index}>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        {param.label}
+                                        {param.required && <span className="text-red-500 ml-1">*</span>}
+                                    </label>
+                                    <FormField
+                                        parameter={param}
+                                        value={formData[param.name]}
+                                        onChange={onFormDataChange}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {isActive && status !== 'completed' && (
+                        <button
+                            onClick={executeStep}
+                            disabled={isExecuting}
+                            className={`w-full py-3 px-4 rounded-lg font-medium transition-all ${
+                                isExecuting 
+                                    ? 'bg-yellow-500 text-white cursor-not-allowed' 
+                                    : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg'
+                            }`}
+                        >
+                            {isExecuting ? `Executing ${step.name}...` : `Execute ${step.name}`}
+                        </button>
+                    )}
+
+                    {status === 'completed' && (
+                        <div className="bg-green-100 border border-green-300 rounded-lg p-4">
+                            <h4 className="font-medium text-green-800 mb-2">✅ Step Completed Successfully</h4>
+                            <pre className="text-sm text-green-700 bg-green-50 p-2 rounded overflow-auto">
+                                {JSON.stringify(formData.results?.[stepIndex], null, 2)}
+                            </pre>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function WorkflowExecutor({ workflow, onClose }) {
+            const [currentStep, setCurrentStep] = useState(0);
+            const [stepStatuses, setStepStatuses] = useState(workflow.steps.map(() => 'pending'));
+            const [formData, setFormData] = useState({ results: [] });
+
+            // Set workflow ID for API calls
+            React.useEffect(() => {
+                window.currentWorkflowId = workflow.id;
+                window.currentSessionId = null; // Reset session for new workflow
+            }, [workflow.id]);
+
+            const handleFormDataChange = (fieldName, value) => {
+                setFormData(prev => ({
+                    ...prev,
+                    [fieldName]: value
+                }));
+            };
+
+            const handleStepComplete = (stepIndex, result) => {
+                const newStatuses = [...stepStatuses];
+                newStatuses[stepIndex] = result.success ? 'completed' : 'error';
+                setStepStatuses(newStatuses);
+
+                const newResults = [...(formData.results || [])];
+                newResults[stepIndex] = result;
+                setFormData(prev => ({
+                    ...prev,
+                    results: newResults
+                }));
+
+                if (result.success && stepIndex < workflow.steps.length - 1) {
+                    setCurrentStep(stepIndex + 1);
+                }
+            };
+
+            const resetWorkflow = () => {
+                setCurrentStep(0);
+                setStepStatuses(workflow.steps.map(() => 'pending'));
+                setFormData({ results: [] });
+            };
+
+            const isWorkflowComplete = stepStatuses.every(status => status === 'completed');
+
+            return (
+                <div className="modal-backdrop fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-800">{workflow.name}</h2>
+                                    <p className="text-gray-600 mt-1">{workflow.description}</p>
+                                </div>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={resetWorkflow}
+                                        className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                                    >
+                                        Reset
+                                    </button>
+                                    <button
+                                        onClick={onClose}
+                                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="mt-4">
+                                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                                    <span>Progress</span>
+                                    <span>{stepStatuses.filter(s => s === 'completed').length} / {workflow.steps.length} completed</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                        className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                                        style={{ width: `${(stepStatuses.filter(s => s === 'completed').length / workflow.steps.length) * 100}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6">
+                            {workflow.steps.map((step, index) => (
+                                <StepExecutor
+                                    key={index}
+                                    step={step}
+                                    stepIndex={index}
+                                    isActive={index === currentStep}
+                                    status={stepStatuses[index]}
+                                    formData={formData}
+                                    onFormDataChange={handleFormDataChange}
+                                    onComplete={handleStepComplete}
+                                />
+                            ))}
+
+                            {isWorkflowComplete && (
+                                <div className="bg-green-100 border border-green-400 rounded-xl p-6 text-center">
+                                    <div className="text-6xl mb-4">🎉</div>
+                                    <h3 className="text-2xl font-bold text-green-800 mb-2">Workflow Completed Successfully!</h3>
+                                    <p className="text-green-700">All steps have been executed and your workflow is complete.</p>
+                                    <button
+                                        onClick={resetWorkflow}
+                                        className="mt-4 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                                    >
+                                        Run Again
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function WorkflowCard({ workflow, onExecute }) {
+            const getCategoryColor = (category) => {
+                const colors = {
+                    'data_processing': 'bg-blue-500',
+                    'content': 'bg-green-500',
+                    'testing': 'bg-purple-500'
+                };
+                return colors[category] || 'bg-gray-500';
+            };
+
+            return (
+                <div className="workflow-card bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+                    <div className="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-800">{workflow.name}</h3>
+                            <p className="text-gray-600 mt-1">{workflow.description}</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-white text-sm ${getCategoryColor(workflow.category)}`}>
+                            {workflow.category.replace('_', ' ')}
+                        </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">{workflow.steps.length}</div>
+                            <div className="text-sm text-gray-600">Steps</div>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                            <div className="text-2xl font-bold text-green-600">Ready</div>
+                            <div className="text-sm text-gray-600">Status</div>
+                        </div>
+                    </div>
+
+                    <button 
+                        onClick={() => onExecute(workflow)}
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg transition-colors font-medium flex items-center justify-center space-x-2"
+                    >
+                        <span>🚀</span>
+                        <span>Execute Workflow</span>
+                    </button>
+                </div>
+            );
+        }
+
+        function App() {
+            const [selectedWorkflow, setSelectedWorkflow] = useState(null);
+
+            const executeWorkflow = (workflow) => {
+                setSelectedWorkflow(workflow);
+            };
+
+            const closeWorkflow = () => {
+                setSelectedWorkflow(null);
+            };
+
+            return (
+                <div className="container mx-auto px-4 py-8 max-w-7xl">
+                    {/* Header */}
+                    <div className="text-center mb-12">
+                        <h1 className="text-5xl font-bold text-gray-800 mb-4">
+                            🚀 Interactive Workflow Executor
+                        </h1>
+                        <p className="text-xl text-gray-600 mb-6">
+                            Click any workflow to execute it step-by-step with real-time feedback
+                        </p>
+                        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg inline-block">
+                            ✅ System Status: <span className="font-semibold">Live & Interactive</span>
+                        </div>
+                    </div>
+
+                    {/* Interactive Workflows */}
+                    <div className="mb-12">
+                        <h2 className="text-3xl font-bold text-gray-800 mb-8">🎯 Execute Auto-Generated Workflows</h2>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                            {Object.values(workflowDefinitions).map((workflow) => (
+                                <WorkflowCard 
+                                    key={workflow.id} 
+                                    workflow={workflow} 
+                                    onExecute={executeWorkflow}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Features */}
+                    <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                        <h2 className="text-3xl font-bold text-gray-800 mb-6">✨ Interactive Features</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="flex items-start">
+                                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white mr-3 mt-1">🎯</div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-800">Real-time Execution</h3>
+                                    <p className="text-gray-600 text-sm">Execute workflow steps with live progress tracking</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start">
+                                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white mr-3 mt-1">📋</div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-800">Dynamic Forms</h3>
+                                    <p className="text-gray-600 text-sm">Auto-generated forms based on step parameters</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start">
+                                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white mr-3 mt-1">🔄</div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-800">Step-by-Step Flow</h3>
+                                    <p className="text-gray-600 text-sm">Sequential execution with validation and results</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Workflow Executor Modal */}
+                    {selectedWorkflow && (
+                        <WorkflowExecutor 
+                            workflow={selectedWorkflow} 
+                            onClose={closeWorkflow}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
