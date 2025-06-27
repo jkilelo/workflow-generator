@@ -38,6 +38,18 @@ The demo script automatically:
 - ✅ Opens browser to http://localhost:8003
 - ✅ Monitors services and provides logging
 
+### **Hello Workflow Demo (Standalone)**
+```bash
+# Generate a complete standalone workflow project
+./demo_hello_workflow.sh
+
+# This creates ./hello_workflow/ with:
+# - Complete FastAPI backend
+# - React frontend interface  
+# - Auto-generated workflow files
+# - Standalone server on http://localhost:8004
+```
+
 ### **Manual Setup**
 ```bash
 # Clone and setup manually
